@@ -121,6 +121,7 @@ function AudioUserAssetsSection(props: PanelProps) {
           <CloudMediaUpload
             uploadApiUrl={props.uploadConfig.uploadApiUrl}
             provider={props.uploadConfig.provider}
+            resolveDownloadUrl={props.uploadConfig.resolveDownloadUrl}
             accept="audio/*"
             onSuccess={onCloudUploadSuccess}
             buttonText="Upload audio"

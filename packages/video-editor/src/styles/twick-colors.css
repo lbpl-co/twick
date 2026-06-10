@@ -1,4 +1,8 @@
-:root {
+/* Scoped to the editor roots (studio embed + standalone video-editor) instead of
+   :root, so these palette variables don't override a host app's own --color-*
+   tokens (e.g. the admin frontend's Tailwind v4 palette). */
+.studio-container,
+.twick-editor-main-container {
     /* Colors */
     --color-purple-100: #f3e8ff;
     --color-purple-200: #e9d5ff;

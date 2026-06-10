@@ -17,7 +17,7 @@
  */
 
 import type { Size } from "@twick/timeline";
-import { Save, Download, Clapperboard, File, Plus, RectangleVertical, RectangleHorizontal } from "lucide-react";
+import { Save, Download, File, Plus, RectangleVertical, RectangleHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface StudioHeaderProps {
@@ -75,11 +75,6 @@ export const StudioHeader = ({
   return (
     <header className="header">
       <div className="flex-container">
-        <Clapperboard className="icon-lg accent-purple" />
-        <h1 className="text-gradient">
-          Twick Studio
-        </h1>
-        <div className="header-separator"></div>
         <div className="flex-container" style={{ gap: "0.5rem" }}>
           <span className="text-sm opacity-80">Orientation</span>
           <button

@@ -11,6 +11,7 @@ export interface CloudMediaUploadProps {
   accept?: string;
   uploadApiUrl: string;
   provider: CloudUploadProvider;
+  resolveDownloadUrl?: (key: string) => Promise<string>;
   buttonText?: string;
   className?: string;
   disabled?: boolean;
@@ -24,6 +25,7 @@ export const CloudMediaUpload = ({
   accept,
   uploadApiUrl,
   provider,
+  resolveDownloadUrl,
   buttonText = "Upload to cloud",
   className,
   disabled = false,
@@ -39,7 +41,7 @@ export const CloudMediaUpload = ({
     progress,
     error,
     resetError,
-  } = useCloudMediaUpload({ uploadApiUrl, provider });
+  } = useCloudMediaUpload({ uploadApiUrl, provider, resolveDownloadUrl });
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

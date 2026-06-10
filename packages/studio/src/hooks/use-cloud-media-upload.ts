@@ -5,6 +5,12 @@ export type CloudUploadProvider = "s3" | "gcs";
 export interface UseCloudMediaUploadConfig {
   uploadApiUrl: string;
   provider: CloudUploadProvider;
+  /**
+   * Optional resolver invoked with the uploaded object key. Return a URL the
+   * editor can fetch for display (e.g. a presigned GET URL for a private bucket).
+   * When omitted, the bare object URL is used.
+   */
+  resolveDownloadUrl?: (key: string) => Promise<string>;
 }
 
 /** Response from S3 presign API (e.g. file-uploader Lambda). */
@@ -64,7 +70,7 @@ const putFileWithProgress = (
 export const useCloudMediaUpload = (
   config: UseCloudMediaUploadConfig
 ): UseCloudMediaUploadReturn => {
-  const { uploadApiUrl, provider } = config;
+  const { uploadApiUrl, provider, resolveDownloadUrl } = config;
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +110,16 @@ export const useCloudMediaUpload = (
           await putFileWithProgress(uploadUrl, file, setProgress);
 
           const publicUrl = uploadUrl.split("?")[0];
+          // Private buckets can't serve the bare object URL. If a resolver is
+          // provided, exchange the object key for a fetchable (presigned) URL.
+          const key = presignData.key;
+          if (key && resolveDownloadUrl) {
+            try {
+              return { url: await resolveDownloadUrl(key) };
+            } catch {
+              // Fall back to the bare URL if signing fails.
+            }
+          }
           return { url: publicUrl };
         }
 
@@ -144,7 +160,7 @@ export const useCloudMediaUpload = (
         setProgress(0);
       }
     },
-    [uploadApiUrl, provider]
+    [uploadApiUrl, provider, resolveDownloadUrl]
   );
 
   return {

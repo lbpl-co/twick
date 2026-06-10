@@ -129,6 +129,12 @@ export interface ICaptionGenerationService {
 export interface UploadConfig {
   uploadApiUrl: string;
   provider: "s3" | "gcs";
+  /**
+   * Optional resolver invoked after an S3 upload with the object key. Return a
+   * URL the editor can fetch for display (e.g. a presigned GET URL for a private
+   * bucket). When omitted, the bare object URL is used (works for public buckets).
+   */
+  resolveDownloadUrl?: (key: string) => Promise<string>;
 }
 
 export interface ProjectTemplate {

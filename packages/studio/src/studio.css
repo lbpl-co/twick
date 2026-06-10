@@ -89,21 +89,21 @@
   box-sizing: border-box;
 }
 
-* {
+/* Scoped to the studio subtree so the editor's theme never leaks into a host
+   app (e.g. the admin frontend's Tailwind palette). */
+.studio-container *,
+.studio-container *::before,
+.studio-container *::after {
   border-color: var(--color-neutral-600);
 }
 
-body {
+.studio-container {
   background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.02), transparent 60%),
     radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.015), transparent 60%),
     var(--color-neutral-900);
   color: var(--color-gray-100);
   font-family: 'Inter', sans-serif;
   font-feature-settings: "rlig" 1, "calt" 1;
-}
-
-html {
-  scroll-behavior: smooth;
 }
 
 /* Components */
@@ -1074,6 +1074,9 @@ html {
 /* Canvas styles */
 .canvas-container {
   position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   overflow: hidden;
   border-radius: 0.75rem;
   box-shadow:
@@ -1607,8 +1610,8 @@ html {
 .studio-container {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  width: 100dvw;
+  height: 100%;
+  width: 100%;
   overflow: hidden;
   background: var(--color-neutral-900);
   color: var(--color-gray-100);
@@ -1636,7 +1639,8 @@ html {
   width: 100%;
   min-width: 0; /* allow flex row to shrink below content size */
   max-width: 100%;
-  height: calc(100vh - 56px);
+  flex: 1;
+  min-height: 0; /* allow the row to shrink within the studio container */
   background: var(--color-neutral-900);
 }
 
@@ -1652,7 +1656,10 @@ html {
 .canvas-wrapper {
   flex: 1;
   min-width: 0;
-  overflow: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 0.75rem;
   background: radial-gradient(
     circle at center,
@@ -1711,20 +1718,20 @@ video::-webkit-media-controls-panel {
   display: none;
 }
 
-/* Global scrollbar styles */
-::-webkit-scrollbar {
+/* Studio scrollbar styles (scoped so they don't restyle the host app) */
+.studio-container ::-webkit-scrollbar {
   width: 6px;
 }
 
-::-webkit-scrollbar-track {
+.studio-container ::-webkit-scrollbar-track {
   background: var(--color-neutral-800);
 }
 
-::-webkit-scrollbar-thumb {
+.studio-container ::-webkit-scrollbar-thumb {
   background: var(--color-neutral-600);
   border-radius: 3px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+.studio-container ::-webkit-scrollbar-thumb:hover {
   background: var(--color-neutral-500);
 }
