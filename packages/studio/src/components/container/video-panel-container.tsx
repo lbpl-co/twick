@@ -128,6 +128,7 @@ function VideoUserAssetsSection(props: PanelProps) {
             uploadApiUrl={props.uploadConfig.uploadApiUrl}
             provider={props.uploadConfig.provider}
             resolveDownloadUrl={props.uploadConfig.resolveDownloadUrl}
+            getAuthHeaders={props.uploadConfig.getAuthHeaders}
             accept="video/*"
             onSuccess={onCloudUploadSuccess}
             buttonText="Upload video"

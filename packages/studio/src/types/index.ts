@@ -135,6 +135,12 @@ export interface UploadConfig {
    * bucket). When omitted, the bare object URL is used (works for public buckets).
    */
   resolveDownloadUrl?: (key: string) => Promise<string>;
+  /**
+   * Optional async provider of auth headers merged into the presign/upload request
+   * to `uploadApiUrl` (e.g. `{ Authorization: "Bearer …" }`). Use when that endpoint
+   * is protected. The direct-to-S3 PUT is unaffected (it uses a presigned URL).
+   */
+  getAuthHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
 }
 
 export interface ProjectTemplate {

@@ -11,6 +11,12 @@ export interface UseCloudMediaUploadConfig {
    * When omitted, the bare object URL is used.
    */
   resolveDownloadUrl?: (key: string) => Promise<string>;
+  /**
+   * Optional async provider of auth headers merged into the presign/upload request
+   * to `uploadApiUrl` (e.g. `{ Authorization: "Bearer …" }`). Use when that endpoint
+   * is protected. The direct-to-S3 PUT is unaffected (it's a presigned URL).
+   */
+  getAuthHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
 }
 
 /** Response from S3 presign API (e.g. file-uploader Lambda). */
@@ -70,7 +76,7 @@ const putFileWithProgress = (
 export const useCloudMediaUpload = (
   config: UseCloudMediaUploadConfig
 ): UseCloudMediaUploadReturn => {
-  const { uploadApiUrl, provider, resolveDownloadUrl } = config;
+  const { uploadApiUrl, provider, resolveDownloadUrl, getAuthHeaders } = config;
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -86,10 +92,12 @@ export const useCloudMediaUpload = (
       setError(null);
 
       try {
+        const authHeaders = getAuthHeaders ? await getAuthHeaders() : {};
+
         if (provider === "s3") {
           const presignRes = await fetch(uploadApiUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...authHeaders },
             body: JSON.stringify({
               filename: file.name,
               contentType: file.type || "application/octet-stream",
@@ -130,6 +138,7 @@ export const useCloudMediaUpload = (
 
           const uploadRes = await fetch(uploadApiUrl, {
             method: "POST",
+            headers: { ...authHeaders },
             body: formData,
           });
 
@@ -160,7 +169,7 @@ export const useCloudMediaUpload = (
         setProgress(0);
       }
     },
-    [uploadApiUrl, provider, resolveDownloadUrl]
+    [uploadApiUrl, provider, resolveDownloadUrl, getAuthHeaders]
   );
 
   return {

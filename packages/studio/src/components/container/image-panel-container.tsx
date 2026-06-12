@@ -137,6 +137,7 @@ function ImageUserAssetsSection(props: PanelProps) {
             uploadApiUrl={props.uploadConfig.uploadApiUrl}
             provider={props.uploadConfig.provider}
             resolveDownloadUrl={props.uploadConfig.resolveDownloadUrl}
+            getAuthHeaders={props.uploadConfig.getAuthHeaders}
             accept="image/*"
             onSuccess={onCloudUploadSuccess}
             buttonText="Upload image"

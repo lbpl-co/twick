@@ -3,7 +3,7 @@ import { TextElement, TrackElement, type TextAlign } from "@twick/timeline";
 import { AVAILABLE_TEXT_FONTS } from "@twick/video-editor";
 
 export const DEFAULT_TEXT_PROPS = {
-  text: "Sample",
+  text: "",
   fontSize: 48,
   fontFamily: "Poppins",
   fontWeight: 400,
