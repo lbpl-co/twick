@@ -94,6 +94,7 @@ const ElementPanelContainer = ({
             addElement={addNewElement}
             updateElement={updateElement}
             uploadConfig={uploadConfig}
+            studioConfig={studioConfig}
           />
         );
       case "audio":
@@ -104,6 +105,7 @@ const ElementPanelContainer = ({
             addElement={addNewElement}
             updateElement={updateElement}
             uploadConfig={uploadConfig}
+            studioConfig={studioConfig}
           />
         );
       case "video":
@@ -114,6 +116,7 @@ const ElementPanelContainer = ({
             addElement={addNewElement}
             updateElement={updateElement}
             uploadConfig={uploadConfig}
+            studioConfig={studioConfig}
           />
         );
       case "text":
@@ -122,6 +125,7 @@ const ElementPanelContainer = ({
             selectedElement={selectedElement}
             addElement={addNewElement}
             updateElement={updateElement}
+            studioConfig={studioConfig}
           />
         );
       case "emoji":

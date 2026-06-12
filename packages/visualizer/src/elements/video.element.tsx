@@ -231,8 +231,11 @@ export const VideoElement = {
     const frameElementRef = createRef<any>();
     const trimStart = element.props?.time ?? 0;
     const playbackRate = element.props?.playbackRate ?? 1;
-    // Clip-relative time so video content starts at 0 when clip starts at element.s.
-    const time = (trimStart + (view.globalTime() - element.s)) * playbackRate;
+    // Reactive AND clip-relative: the signal must keep reading the live globalTime so
+    // fastSeekedVideo() advances each draw (a constant freezes the frame while play={true}
+    // keeps audio running — the "static frame + audio" bug); subtracting element.s makes
+    // the content start at 0 when the clip begins at element.s rather than element.s in.
+    const time = () => (trimStart + (view.globalTime() - element.s)) * playbackRate;
     yield containerRef().add(
       <Rect ref={frameContainerRef} key={element.id} {...element.frame}>
         <Video

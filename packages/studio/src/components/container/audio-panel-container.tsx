@@ -13,6 +13,11 @@ import { ConfirmDialog } from "../shared/confirm-dialog";
 export const AudioPanelContainer = (props: PanelProps) => {
   const [activeSource, setActiveSource] = useState<"user" | "public">("user");
 
+  // Host can hide the stock "Public" provider tab, leaving only "My assets".
+  if (props.studioConfig?.hidePublicAssets) {
+    return <AudioUserAssetsSection {...props} />;
+  }
+
   return (
     <>
       <div className="panel-section">

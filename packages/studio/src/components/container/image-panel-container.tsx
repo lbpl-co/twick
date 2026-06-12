@@ -12,6 +12,11 @@ import { ConfirmDialog } from "../shared/confirm-dialog";
 export function ImagePanelContainer(props: PanelProps) {
   const [activeSource, setActiveSource] = useState<"user" | "public">("user");
 
+  // Host can hide the stock "Public" provider tab, leaving only "My assets".
+  if (props.studioConfig?.hidePublicAssets) {
+    return <ImageUserAssetsSection {...props} />;
+  }
+
   return (
     <>
       <div className="panel-section">

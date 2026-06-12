@@ -162,7 +162,15 @@ export const TrackElementView: React.FC<{
           newEnd = nextStart;
         }
       }
-      newEnd = Math.max(prev.start + MIN_DURATION, Math.min(newEnd, duration));
+      // Video/audio have an intrinsic media length, so they can't extend past the
+      // current timeline. Text/image/shapes have no inherent duration — let them
+      // extend beyond the timeline end (which grows totalDuration on drop).
+      const elType = element.getType();
+      const isMediaElement =
+        elType === TIMELINE_ELEMENT_TYPE.VIDEO ||
+        elType === TIMELINE_ELEMENT_TYPE.AUDIO;
+      const maxEnd = isMediaElement ? duration : newEnd;
+      newEnd = Math.max(prev.start + MIN_DURATION, Math.min(newEnd, maxEnd));
       return {
         start: prev.start,
         end: newEnd,

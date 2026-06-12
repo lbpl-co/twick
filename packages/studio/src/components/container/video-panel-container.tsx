@@ -12,6 +12,10 @@ import { ConfirmDialog } from "../shared/confirm-dialog";
 
 export function VideoPanelContainer(props: PanelProps) {
   const [activeSource, setActiveSource] = useState<"user" | "public">("user");
+  // Host can hide the stock "Public" provider tab, leaving only "My assets".
+  if (props.studioConfig?.hidePublicAssets) {
+    return <VideoUserAssetsSection {...props} />;
+  }
   return (
     <>
       <div className="panel-section">

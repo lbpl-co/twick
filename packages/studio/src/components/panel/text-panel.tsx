@@ -56,9 +56,14 @@
  * ```
  */
 
+import { useRef } from "react";
 import type { TextPanelState, TextPanelActions } from "../../hooks/use-text-panel";
 
-export type TextPanelProps = TextPanelState & TextPanelActions;
+export type TextPanelProps = TextPanelState &
+  TextPanelActions & {
+    /** Dynamic-variable chips inserted at the caret (see StudioConfig.textVariables). */
+    variables?: { token: string; label: string }[];
+  };
 
 export function TextPanel({
   textContent,
@@ -90,13 +95,35 @@ export function TextPanel({
   setBackgroundColor,
   setBackgroundOpacity,
   handleApplyChanges,
+  variables,
 }: TextPanelProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Insert a variable token at the caret (or replacing the selection), then
+  // restore the caret just after the inserted token once the value updates.
+  const insertVariable = (token: string) => {
+    const input = inputRef.current;
+    const text = textContent ?? "";
+    const start = input?.selectionStart ?? text.length;
+    const end = input?.selectionEnd ?? start;
+    setTextContent(text.slice(0, start) + token + text.slice(end));
+    const caret = start + token.length;
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(caret, caret);
+      }
+    });
+  };
+
   return (
     <div className="panel-container">
       <div className="panel-title">Text</div>
       {/* Text Content */}
       <div className="flex panel-section">
         <input
+          ref={inputRef}
           type="text"
           value={textContent}
           placeholder="Sample"
@@ -104,6 +131,38 @@ export function TextPanel({
           className="input-dark"
         />
       </div>
+
+      {/* Dynamic-variable chips: insert a templating token at the caret. */}
+      {variables && variables.length > 0 && (
+        <div className="panel-section">
+          <label className="label-dark">Variables</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {variables.map((v) => (
+              <button
+                key={v.token}
+                type="button"
+                onClick={() => insertVariable(v.token)}
+                title={`Insert ${v.token}`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "3px 8px",
+                  fontSize: 12,
+                  borderRadius: 6,
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: "rgba(255,255,255,0.06)",
+                  color: "inherit",
+                  cursor: "pointer",
+                }}
+              >
+                <span style={{ opacity: 0.5 }}>{"{ }"}</span>
+                {v.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Font Size */}
       <div className="panel-section">

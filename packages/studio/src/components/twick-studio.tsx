@@ -75,16 +75,18 @@ export function TwickStudio({ studioConfig }: { studioConfig?: StudioConfig }) {
   return (
     <MediaProvider studioConfig={twickStudiConfig}>
       <div className="studio-container">
-        {/* Header */}
-        <StudioHeader
-          setVideoResolution={setVideoResolution}
-          onNewProject={onNewProject}
-          onLoadProject={onLoadProject}
-          onSaveProject={onSaveProject}
-          onExportVideo={onExportVideo}
-          onExportCaptions={onExportCaptions}
-          onExportChapters={onExportChapters}
-        />
+        {/* Header — hidden when the host app provides its own chrome */}
+        {!twickStudiConfig.hideHeader && (
+          <StudioHeader
+            setVideoResolution={setVideoResolution}
+            onNewProject={onNewProject}
+            onLoadProject={onLoadProject}
+            onSaveProject={onSaveProject}
+            onExportVideo={onExportVideo}
+            onExportCaptions={onExportCaptions}
+            onExportChapters={onExportChapters}
+          />
+        )}
         {/* Main Content */}
         <div className="studio-content">
           {/* Left Toolbar */}

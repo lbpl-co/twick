@@ -326,14 +326,33 @@ export class TimelineEditor {
     };
   }
 
+  /**
+   * A track is locked when its props carry `locked: true`. Locked tracks cannot
+   * be removed via any user-facing delete path (keyboard, context menu, control
+   * bar) — used by host apps to pin mandatory tracks. See `isElementLocked`.
+   */
+  private isTrackLocked(track?: Track): boolean {
+    return Boolean(track?.getProps()?.locked);
+  }
+
+  /**
+   * An element is locked when its metadata carries `locked: true`. Locked
+   * elements cannot be removed via any user-facing delete path.
+   */
+  private isElementLocked(element?: TrackElement): boolean {
+    return Boolean(element?.getMetadata()?.locked);
+  }
+
   removeTrackById(id: string): void {
     const tracks = this.getTimelineData()?.tracks || [];
+    if (this.isTrackLocked(tracks.find((t) => t.getId() === id))) return;
     const updatedTracks = tracks.filter((t) => t.getId() !== id);
     this.setTimelineData({ tracks: updatedTracks, updatePlayerData: true });
     this.emit("track:removed", { trackId: id });
   }
 
   removeTrack(track: Track): void {
+    if (this.isTrackLocked(track)) return;
     const tracks = this.getTimelineData()?.tracks || [];
     const updatedTracks = tracks.filter((t) => t.getId() !== track.getId());
     this.setTimelineData({ tracks: updatedTracks, updatePlayerData: true });
@@ -394,6 +413,7 @@ export class TimelineEditor {
    * @returns `true` if the element was removed successfully, otherwise `false`.
    */
   removeElement(element: TrackElement): boolean {
+    if (this.isElementLocked(element)) return false;
     const track = this.getTrackById(element.getTrackId());
     if (!track) {
       return false;
@@ -1219,7 +1239,7 @@ export class TimelineEditor {
     for (const track of tracks) {
       const elements = track.getElements();
       for (const el of elements) {
-        if (idsSet.has(el.getId())) {
+        if (idsSet.has(el.getId()) && !this.isElementLocked(el)) {
           const remover = new ElementRemover(track);
           el.accept(remover);
           changed = true;

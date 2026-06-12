@@ -176,6 +176,26 @@ export interface StudioConfig extends VideoEditorConfig {
   customTools?: ToolCategory[];
   /** Tool ids that should be hidden from the default toolbar. */
   hiddenTools?: string[];
+  /**
+   * Hide the studio's top header bar (orientation toggle + New/Load/Save/Export).
+   * Use when the host app provides its own chrome for these actions. The host is
+   * then responsible for save/export/orientation (e.g. by remounting the provider
+   * at a new resolution).
+   */
+  hideHeader?: boolean;
+  /**
+   * Hide the "Public" (stock provider) tab in the video/image/audio media panels,
+   * leaving only the user's own "My assets". Use when public providers aren't
+   * configured or the host app only allows uploaded media.
+   */
+  hidePublicAssets?: boolean;
+  /**
+   * Dynamic-variable tokens offered as one-click chips under the text panel's
+   * content field. Clicking a chip inserts `token` at the caret. Host apps use
+   * this for templating placeholders (e.g. `{{student.name}}`) resolved
+   * downstream at render time.
+   */
+  textVariables?: { token: string; label: string }[];
   /** Custom panel renderers keyed by tool id. */
   customPanels?: Record<string, ComponentType<PanelProps>>;
   /** Optional project templates shown in Template Gallery. */
