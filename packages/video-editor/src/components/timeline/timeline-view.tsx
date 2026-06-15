@@ -10,6 +10,7 @@ import { useMarqueeSelection } from "../../hooks/use-marquee-selection";
 import { useTimelineDrop } from "../../hooks/use-timeline-drop";
 import { useEdgeAutoScroll } from "../../hooks/use-edge-auto-scroll";
 import { MarqueeOverlay } from "./marquee-overlay";
+import { getSnapTargets } from "../../helpers/snap-targets";
 import { getTrackOrSeparatorAt, type DropTarget } from "../../utils/drop-target";
 import type { Size } from "@twick/timeline";
 import type { ChapterMarker } from "@twick/timeline";
@@ -103,6 +104,16 @@ function TimelineView({
   const [draggedTimeline, setDraggedTimeline] = useState<Track | null>(null);
   const [draggingElementId, setDraggingElementId] = useState<string | null>(null);
   const [activeDropTarget, setActiveDropTarget] = useState<DropTarget | null>(null);
+  // Time (seconds) of the alignment guide shown while a clip edge snaps; null = hidden.
+  const [activeSnapTime, setActiveSnapTime] = useState<number | null>(null);
+
+  // Collects snap targets across all tracks (clip edges, playhead, 0, and duration),
+  // excluding the element currently being dragged.
+  const computeSnapTargets = useCallback(
+    (excludeId: string) =>
+      getSnapTargets(tracks ?? [], currentTime, duration, excludeId),
+    [tracks, currentTime, duration]
+  );
 
   const { selectedTrackElement } = useMemo(() => {
     if (selectedItem && "elements" in selectedItem) {
@@ -169,6 +180,7 @@ function TimelineView({
     const onUp = () => {
       pointerRef.current = null;
       setActiveDropTarget(null);
+      setActiveSnapTime(null);
     };
     document.addEventListener("mousemove", onMove);
     document.addEventListener("touchmove", onMove, { passive: true });
@@ -377,6 +389,18 @@ function TimelineView({
             }}
           />
         )}
+        {activeSnapTime !== null && duration > 0 ? (
+          <div
+            className="twick-snap-guide"
+            style={{
+              // Clip edges are positioned as a percentage of the full track width
+              // (`.twick-track` = timelineWidth, offset by the LABEL_WIDTH header),
+              // so the guide must use the full timelineWidth scale — not the
+              // reduced (timelineWidth - LABEL_WIDTH) used by the drop preview.
+              left: LABEL_WIDTH + (activeSnapTime / duration) * timelineWidth,
+            }}
+          />
+        ) : null}
         <div style={{ position: "relative", zIndex: 10 }}>
           {/* Top separator (drop zone above first track) */}
           <div
@@ -420,6 +444,9 @@ function TimelineView({
                   onContextMenuTarget={onContextMenuTarget}
                   onDeleteElement={onDeleteElement}
                   onSplitElement={onSplitElement}
+                  getSnapTargets={computeSnapTargets}
+                  pixelsPerSecond={zoomLevel * 100}
+                  onSnapChange={setActiveSnapTime}
                 />
               </div>
               <div

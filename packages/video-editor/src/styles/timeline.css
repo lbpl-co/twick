@@ -85,6 +85,19 @@
   box-shadow: 0 0 8px rgba(139, 92, 246, 0.8);
 }
 
+/* Vertical alignment guide shown while a clip edge snaps to another edge/playhead. */
+.twick-snap-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  z-index: 25;
+  pointer-events: none;
+  background-color: var(--color-cyan-400, #22d3ee);
+  box-shadow: 0 0 6px rgba(34, 211, 238, 0.9);
+}
+
 .twick-seek-track-handle {
   position: absolute;
   top: 0;

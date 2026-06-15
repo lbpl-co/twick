@@ -22,6 +22,9 @@ interface TrackBaseProps {
   onContextMenuTarget?: (element: TrackElement) => void;
   onDeleteElement?: (element: TrackElement) => void;
   onSplitElement?: (element: TrackElement, splitTime: number) => void;
+  getSnapTargets?: (excludeElementId: string) => number[];
+  pixelsPerSecond?: number;
+  onSnapChange?: (time: number | null) => void;
 }
 
 const TrackBase = ({
@@ -40,6 +43,9 @@ const TrackBase = ({
   onContextMenuTarget,
   onDeleteElement,
   onSplitElement,
+  getSnapTargets,
+  pixelsPerSecond,
+  onSnapChange,
 }: TrackBaseProps) => {
   const trackRef = useRef<HTMLDivElement>(null);
 
@@ -77,6 +83,9 @@ const TrackBase = ({
           onContextMenuTarget={onContextMenuTarget}
           onDeleteElement={onDeleteElement}
           onSplitElement={onSplitElement}
+          getSnapTargets={getSnapTargets}
+          pixelsPerSecond={pixelsPerSecond}
+          onSnapChange={onSnapChange}
           nextStart={
             index < elements.length - 1
               ? elements[index + 1].getStart()

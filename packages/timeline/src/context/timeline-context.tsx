@@ -124,6 +124,8 @@ export interface TimelineProviderProps {
    * Set to `{ enabled: false }` to disable tracking.
    */
   analytics?: AnalyticsConfig;
+  /** Extra seconds appended after the last element so the timeline shows empty space at the end. */
+  paddingEnd?: number;
 }
 
 /**
@@ -150,6 +152,7 @@ const TimelineProviderInner = ({
   children,
   resolution,
   initialData,
+  paddingEnd,
 }: TimelineProviderProps) => {
   const [timelineAction, setTimelineActionState] = useState<{
     type: string;
@@ -218,6 +221,7 @@ const TimelineProviderInner = ({
       setTimelineAction: (action: string, payload?: unknown) => {
         setTimelineActionState({ type: action, payload });
       },
+      paddingEnd,
     });
 
     // Register the editor instance in the global registry
@@ -361,6 +365,7 @@ export const TimelineProvider = ({
   undoRedoPersistenceKey,
   maxHistorySize,
   analytics,
+  paddingEnd,
 }: TimelineProviderProps) => {
   // Determine if analytics is enabled
   const analyticsEnabled = isAnalyticsEnabled(analytics);
@@ -389,6 +394,7 @@ export const TimelineProvider = ({
           undoRedoPersistenceKey={undoRedoPersistenceKey}
           maxHistorySize={maxHistorySize}
           analytics={analytics}
+          paddingEnd={paddingEnd}
         >
           {children}
         </TimelineProviderInner>
@@ -413,6 +419,7 @@ export const TimelineProvider = ({
           undoRedoPersistenceKey={undoRedoPersistenceKey}
           maxHistorySize={maxHistorySize}
           analytics={analytics}
+          paddingEnd={paddingEnd}
         >
           {children}
         </TimelineProviderInner>

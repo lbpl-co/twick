@@ -52,6 +52,8 @@ export interface TimelineOperationContext {
   handleResetHistory: () => void;
   updateChangeLog: () => void;
   setTimelineAction?: (action: string, payload?: unknown) => void;
+  /** Extra seconds appended to the computed duration so the timeline shows empty space at the end. */
+  paddingEnd?: number;
 }
 
 export interface TrackUpsertInput {
@@ -615,7 +617,7 @@ export class TimelineEditor {
 
   updateHistory(timelineTrackData: TimelineTrackData): void {
     const tracks = timelineTrackData.tracks.map((t) => t.serialize());
-    this.totalDuration = getTotalDuration(tracks);
+    this.totalDuration = getTotalDuration(tracks) + (this.context.paddingEnd ?? 0);
     this.context.setTotalDuration(this.totalDuration);
     const version = timelineTrackData.version;
     this.context.setPresent({
@@ -650,7 +652,7 @@ export class TimelineEditor {
       });
 
       // Update total duration
-      this.totalDuration = getTotalDuration(result.tracks);
+      this.totalDuration = getTotalDuration(result.tracks) + (this.context.paddingEnd ?? 0);
       this.context.setTotalDuration(this.totalDuration);
       this.context.updateChangeLog();
 
@@ -690,7 +692,7 @@ export class TimelineEditor {
       });
 
       // Update total duration
-      this.totalDuration = getTotalDuration(result.tracks);
+      this.totalDuration = getTotalDuration(result.tracks) + (this.context.paddingEnd ?? 0);
       this.context.setTotalDuration(this.totalDuration);
       this.context.updateChangeLog();
 

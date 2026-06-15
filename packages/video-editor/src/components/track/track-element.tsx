@@ -4,6 +4,7 @@ import { motion, HTMLMotionProps } from "framer-motion";
 import {
   MIN_DURATION,
   DRAG_TYPE,
+  SNAP_THRESHOLD_PX,
 } from "../../helpers/constants";
 import { ELEMENT_COLORS } from "../../helpers/editor.utils";
 import {
@@ -12,6 +13,8 @@ import {
   TrackElement,
   TIMELINE_ELEMENT_TYPE,
   canSplitElement,
+  snapTime,
+  pxToSecThreshold,
 } from "@twick/timeline";
 import { ElementColors } from "../../helpers/types";
 import "../../styles/timeline.css";
@@ -49,6 +52,12 @@ export const TrackElementView: React.FC<{
   onContextMenuTarget?: (element: TrackElement) => void;
   onDeleteElement?: (element: TrackElement) => void;
   onSplitElement?: (element: TrackElement, splitTime: number) => void;
+  /** Collects snap target times (seconds) for the current drag, excluding this element. */
+  getSnapTargets?: (excludeElementId: string) => number[];
+  /** Timeline scale (px per second); used to derive the snap threshold in seconds. */
+  pixelsPerSecond?: number;
+  /** Reports the active snap guide time (seconds), or null when nothing is snapping. */
+  onSnapChange?: (time: number | null) => void;
 }> = ({
   element,
   parentWidth,
@@ -66,6 +75,9 @@ export const TrackElementView: React.FC<{
   onContextMenuTarget,
   onDeleteElement,
   onSplitElement,
+  getSnapTargets,
+  pixelsPerSecond,
+  onSnapChange,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const dragType = useRef<string | null>(null);
@@ -79,15 +91,95 @@ export const TrackElementView: React.FC<{
     start: 0,
     end: 0,
   });
+  // Mirror of `position` kept in sync so drag handlers can read/write the latest
+  // value synchronously within a single gesture event (needed to compute snapping
+  // and notify the parent in the same tick, rather than inside a setState updater).
+  const posRef = useRef({ start: 0, end: 0 });
+  // Snap targets are collected once per drag and cached for its duration.
+  const snapTargetsRef = useRef<number[] | null>(null);
+  // Last guide time reported, so we only fire haptics when a *new* edge snaps.
+  const lastGuideRef = useRef<number | null>(null);
+
+  const commitPosition = (next: { start: number; end: number }) => {
+    posRef.current = next;
+    setPosition(next);
+  };
 
   useEffect(() => {
-    setPosition({
+    commitPosition({
       start: element.getStart(),
       end: element.getEnd(),
     });
   }, [element.getStart(), element.getEnd(), parentWidth, duration]);
 
-  const bind = useDrag(({ delta: [dx] }) => {
+  // Snap distance in seconds, derived from the timeline scale (constant on-screen px).
+  const getThresholdSec = () =>
+    pixelsPerSecond && pixelsPerSecond > 0
+      ? pxToSecThreshold(SNAP_THRESHOLD_PX, pixelsPerSecond)
+      : 0;
+
+  // Lazily collect (and cache) the snap targets for the current drag.
+  const ensureSnapTargets = (bypass: boolean): number[] => {
+    if (bypass || !getSnapTargets) return [];
+    if (snapTargetsRef.current === null) {
+      snapTargetsRef.current = getSnapTargets(element.getId());
+    }
+    return snapTargetsRef.current;
+  };
+
+  // Report the active guide and pulse haptics on a freshly-snapped edge.
+  const notifySnap = (guide: number | null) => {
+    if (guide !== null && guide !== lastGuideRef.current) {
+      try {
+        navigator.vibrate?.(8);
+      } catch {
+        /* unsupported — visual guide is the primary feedback */
+      }
+    }
+    lastGuideRef.current = guide;
+    onSnapChange?.(guide);
+  };
+
+  const isMediaElement =
+    element.getType() === TIMELINE_ELEMENT_TYPE.VIDEO ||
+    element.getType() === TIMELINE_ELEMENT_TYPE.AUDIO;
+
+  // Clamp a candidate clip start (move) to the same bounds the unsnapped path uses.
+  const clampMoveStart = (raw: number, curEnd: number, span: number) => {
+    let v = Math.max(0, Math.min(raw, curEnd - MIN_DURATION));
+    if (!allowOverlap) {
+      if (prevEnd !== null && v < prevEnd) {
+        v = prevEnd;
+      } else if (nextStart !== null && v + span > nextStart) {
+        v = nextStart - span;
+      }
+    }
+    return Math.max(0, Math.min(v, duration - span));
+  };
+
+  // Clamp a candidate start edge (trim-start) to its bounds.
+  const clampTrimStart = (raw: number, curEnd: number) => {
+    let v = Math.max(0, Math.min(raw, curEnd - MIN_DURATION));
+    if (prevEnd !== null && !allowOverlap && v < prevEnd) {
+      v = prevEnd;
+    }
+    return Math.max(0, Math.min(v, curEnd - MIN_DURATION));
+  };
+
+  // Clamp a candidate end edge (trim-end) to its bounds.
+  const clampTrimEnd = (raw: number, curStart: number) => {
+    let v = Math.max(raw, curStart + MIN_DURATION);
+    if (!allowOverlap && nextStart !== null && v > nextStart) {
+      v = nextStart;
+    }
+    // Video/audio have an intrinsic media length, so they can't extend past the
+    // current timeline. Text/image/shapes have no inherent duration — let them
+    // extend beyond the timeline end (which grows totalDuration on drop).
+    const maxEnd = isMediaElement ? duration : v;
+    return Math.max(curStart + MIN_DURATION, Math.min(v, maxEnd));
+  };
+
+  const bind = useDrag(({ delta: [dx], event }) => {
     if (!parentWidth) return;
     if (dx == 0) return;
     if (!isDragging) {
@@ -95,29 +187,47 @@ export const TrackElementView: React.FC<{
       onDragStateChange?.(true, element);
     }
     dragType.current = DRAG_TYPE.MOVE;
-    setPosition((prev) => {
-      const span = prev.end - prev.start;
-      let newStart = prev.start + (dx / parentWidth) * duration;
-      newStart = Math.max(0, Math.min(newStart, prev.end - MIN_DURATION));
-      if (!allowOverlap) {
-        if (prevEnd !== null && newStart < prevEnd) {
-          newStart = prevEnd;
-        } else if (
-          nextStart !== null &&
-          !allowOverlap &&
-          newStart + span > nextStart
-        ) {
-          newStart = nextStart - span;
+    const cur = posRef.current;
+    const span = cur.end - cur.start;
+    const bypass = !!(event as PointerEvent | undefined)?.altKey;
+    let newStart = clampMoveStart(
+      cur.start + (dx / parentWidth) * duration,
+      cur.end,
+      span
+    );
+
+    // Snap whichever edge (start or end) lands closest to a target, then shift
+    // the whole clip so that edge aligns. Re-clamp; if the snap would break the
+    // bounds, ignore it and clear the guide.
+    let guide: number | null = null;
+    const targets = ensureSnapTargets(bypass);
+    const thr = getThresholdSec();
+    if (targets.length && thr > 0) {
+      const sStart = snapTime(newStart, targets, thr);
+      const sEnd = snapTime(newStart + span, targets, thr);
+      let best = Infinity;
+      let snappedStart: number | null = null;
+      if (sStart.didSnap) {
+        best = Math.abs(newStart - sStart.time);
+        snappedStart = sStart.time;
+        guide = sStart.time;
+      }
+      if (sEnd.didSnap && Math.abs(newStart + span - sEnd.time) < best) {
+        snappedStart = sEnd.time - span;
+        guide = sEnd.time;
+      }
+      if (snappedStart !== null) {
+        const clamped = clampMoveStart(snappedStart, cur.end, span);
+        if (Math.abs(clamped - snappedStart) < 1e-4) {
+          newStart = clamped;
+        } else {
+          guide = null;
         }
       }
-      // Keep position valid even after neighbor constraints.
-      newStart = Math.max(0, Math.min(newStart, duration - span));
+    }
 
-      return {
-        start: newStart,
-        end: newStart + span,
-      };
-    });
+    commitPosition({ start: newStart, end: newStart + span });
+    notifySnap(guide);
   });
 
   const bindStartHandle = useDrag(({ delta: [dx], event }) => {
@@ -130,18 +240,29 @@ export const TrackElementView: React.FC<{
       onDragStateChange?.(false, element);
     }
     dragType.current = DRAG_TYPE.START;
-    setPosition((prev) => {
-      let newStart = prev.start + (dx / parentWidth) * duration;
-      newStart = Math.max(0, Math.min(newStart, prev.end - MIN_DURATION));
-      if (prevEnd !== null && !allowOverlap && newStart < prevEnd) {
-        newStart = prevEnd;
+    const cur = posRef.current;
+    const bypass = !!(event as PointerEvent | undefined)?.altKey;
+    let newStart = clampTrimStart(
+      cur.start + (dx / parentWidth) * duration,
+      cur.end
+    );
+
+    let guide: number | null = null;
+    const targets = ensureSnapTargets(bypass);
+    const thr = getThresholdSec();
+    if (targets.length && thr > 0) {
+      const s = snapTime(newStart, targets, thr);
+      if (s.didSnap) {
+        const clamped = clampTrimStart(s.time, cur.end);
+        if (Math.abs(clamped - s.time) < 1e-4) {
+          newStart = clamped;
+          guide = s.time;
+        }
       }
-      newStart = Math.max(0, Math.min(newStart, prev.end - MIN_DURATION));
-      return {
-        start: newStart,
-        end: prev.end,
-      };
-    });
+    }
+
+    commitPosition({ start: newStart, end: cur.end });
+    notifySnap(guide);
   });
 
   const bindEndHandle = useDrag(({ delta: [dx], event }) => {
@@ -154,32 +275,35 @@ export const TrackElementView: React.FC<{
       onDragStateChange?.(false, element);
     }
     dragType.current = DRAG_TYPE.END;
-    setPosition((prev) => {
-      let newEnd = prev.end + (dx / parentWidth) * duration;
-      newEnd = Math.max(newEnd, prev.start + MIN_DURATION);
-      if (!allowOverlap) {
-        if (nextStart !== null && newEnd > nextStart) {
-          newEnd = nextStart;
+    const cur = posRef.current;
+    const bypass = !!(event as PointerEvent | undefined)?.altKey;
+    let newEnd = clampTrimEnd(
+      cur.end + (dx / parentWidth) * duration,
+      cur.start
+    );
+
+    let guide: number | null = null;
+    const targets = ensureSnapTargets(bypass);
+    const thr = getThresholdSec();
+    if (targets.length && thr > 0) {
+      const s = snapTime(newEnd, targets, thr);
+      if (s.didSnap) {
+        const clamped = clampTrimEnd(s.time, cur.start);
+        if (Math.abs(clamped - s.time) < 1e-4) {
+          newEnd = clamped;
+          guide = s.time;
         }
       }
-      // Video/audio have an intrinsic media length, so they can't extend past the
-      // current timeline. Text/image/shapes have no inherent duration — let them
-      // extend beyond the timeline end (which grows totalDuration on drop).
-      const elType = element.getType();
-      const isMediaElement =
-        elType === TIMELINE_ELEMENT_TYPE.VIDEO ||
-        elType === TIMELINE_ELEMENT_TYPE.AUDIO;
-      const maxEnd = isMediaElement ? duration : newEnd;
-      newEnd = Math.max(prev.start + MIN_DURATION, Math.min(newEnd, maxEnd));
-      return {
-        start: prev.start,
-        end: newEnd,
-      };
-    });
+    }
+
+    commitPosition({ start: cur.start, end: newEnd });
+    notifySnap(guide);
   });
 
   const setLastPos = () => {
     lastPosRef.current = position;
+    // Fresh targets for each new gesture.
+    snapTargetsRef.current = null;
   };
 
   const sendUpdate = (e?: React.MouseEvent | React.TouchEvent) => {
@@ -194,6 +318,9 @@ export const TrackElementView: React.FC<{
     }
     setIsDragging(false);
     onDragStateChange?.(false, element);
+    // Drag finished — clear the snap guide and drop cached targets.
+    snapTargetsRef.current = null;
+    notifySnap(null);
     const payload: TrackElementDragPayload = {
       element,
       updates: {
