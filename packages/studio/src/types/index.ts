@@ -183,6 +183,14 @@ export interface StudioConfig extends VideoEditorConfig {
   /** Tool ids that should be hidden from the default toolbar. */
   hiddenTools?: string[];
   /**
+   * Show a "Before track" tag in the element inspector for media/text elements.
+   * Host apps use this to mark content that belongs to a "before" recording so a
+   * downstream render can drop it when no before recording exists. Writes
+   * `metadata.beforeTrack` on the element; advisory only (the editor itself does
+   * nothing with it).
+   */
+  enableBeforeTrackTag?: boolean;
+  /**
    * Hide the studio's top header bar (orientation toggle + New/Load/Save/Export).
    * Use when the host app provides its own chrome for these actions. The host is
    * then responsible for save/export/orientation (e.g. by remounting the provider

@@ -24,10 +24,10 @@ import { useTimelineContext } from "@twick/timeline";
 import { MediaProvider } from "../context/media-context";
 import { PropertiesPanelContainer } from "./container/properties-panel-container";
 import VideoEditor from "@twick/video-editor";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { StudioConfig } from "../types";
 import useStudioOperation from "../hooks/use-studio-operation";
-import { useGenerateCaptions } from "..";
 
 export function TwickStudio({ studioConfig }: { studioConfig?: StudioConfig }) {
   const {
@@ -48,12 +48,8 @@ export function TwickStudio({ studioConfig }: { studioConfig?: StudioConfig }) {
     onExportChapters,
   } = useStudioOperation(studioConfig);
 
-  const {
-    onGenerateCaptions,
-    addCaptionsToTimeline,
-    getCaptionstatus,
-    pollingIntervalMs,
-  } = useGenerateCaptions(studioConfig);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
 
   const twickStudiConfig: StudioConfig = useMemo(
     () => ({
@@ -95,20 +91,24 @@ export function TwickStudio({ studioConfig }: { studioConfig?: StudioConfig }) {
             setSelectedTool={setSelectedTool}
             customTools={twickStudiConfig.customTools}
             hiddenTools={twickStudiConfig.hiddenTools}
+            leftCollapsed={leftCollapsed}
+            setLeftCollapsed={setLeftCollapsed}
           />
 
           {/* Left Panel (Element Library) */}
-          <div className="studio-left-panel">
-            <ElementPanelContainer
-              videoResolution={videoResolution}
-              selectedTool={selectedTool}
-              setSelectedTool={setSelectedTool}
-              selectedElement={selectedElement}
-              addElement={addElement}
-              updateElement={updateElement}
-              uploadConfig={twickStudiConfig.uploadConfig}
-              studioConfig={twickStudiConfig}
-            />
+          <div className={`studio-left-panel${leftCollapsed ? " studio-left-panel--collapsed" : ""}`}>
+            <div className="studio-panel-content">
+              <ElementPanelContainer
+                videoResolution={videoResolution}
+                selectedTool={selectedTool}
+                setSelectedTool={setSelectedTool}
+                selectedElement={selectedElement}
+                addElement={addElement}
+                updateElement={updateElement}
+                uploadConfig={twickStudiConfig.uploadConfig}
+                studioConfig={twickStudiConfig}
+              />
+            </div>
           </div>
 
           {/* Center - Canvas and Transport */}
@@ -126,16 +126,23 @@ export function TwickStudio({ studioConfig }: { studioConfig?: StudioConfig }) {
           </main>
 
           {/* Right Panel (Inspector + Props Toolbar) */}
-          <div className="studio-right-panel">
-            <PropertiesPanelContainer
-              selectedElement={selectedElement}
-              updateElement={updateElement}
-              addCaptionsToTimeline={addCaptionsToTimeline}
-              onGenerateCaptions={onGenerateCaptions}
-              getCaptionstatus={getCaptionstatus}
-              pollingIntervalMs={pollingIntervalMs}
-              videoResolution={videoResolution}
-            />
+          <div className={`studio-right-panel${rightCollapsed ? " studio-right-panel--collapsed" : ""}`}>
+            <button
+              className="studio-panel-toggle-strip"
+              onClick={() => setRightCollapsed((c) => !c)}
+              title={rightCollapsed ? "Show panel" : "Hide panel"}
+            >
+              {rightCollapsed ? <ChevronLeft size={12} /> : <ChevronRight size={12} />}
+            </button>
+            <div className="studio-panel-content">
+              <PropertiesPanelContainer
+                selectedElement={selectedElement}
+                updateElement={updateElement}
+                addCaptionsToTimeline={() => {}}
+                videoResolution={videoResolution}
+                studioConfig={twickStudiConfig}
+              />
+            </div>
           </div>
         </div>
       </div>

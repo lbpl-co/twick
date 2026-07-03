@@ -18,10 +18,10 @@ import {
 import { CaptionPropPanel } from "../properties/caption-prop";
 import { PlaybackPropsPanel } from "../properties/playback-props";
 import { ColorFilterPropsPanel } from "../properties/color-filter-props";
-import { GenerateCaptionsPanel } from "../properties/generate-captions.tsx";
 import { TextPropsPanel } from "../properties/text-props";
 import { AnnotationStylePanel } from "../properties/annotation-style-panel";
-import { ICaptionGenerationPollingResponse, CaptionEntry } from "../../types";
+import { BeforeTrackToggle } from "../properties/before-track-toggle";
+import { CaptionEntry, StudioConfig } from "../../types";
 import { useCallback } from "react";
 
 const DEFAULT_CANVAS_BACKGROUND = "#000000";
@@ -30,20 +30,15 @@ interface PropertiesPanelContainerProps {
   selectedElement: TrackElement | null;
   updateElement: (element: TrackElement) => void;
   addCaptionsToTimeline: (captions: CaptionEntry[]) => void;
-  onGenerateCaptions: (videoElement: VideoElement) => Promise<string | null>;
-  getCaptionstatus: (reqId: string) => Promise<ICaptionGenerationPollingResponse>;
-  pollingIntervalMs: number;
   videoResolution: Size;
+  studioConfig?: StudioConfig;
 }
 
 export function PropertiesPanelContainer({
   selectedElement,
   updateElement,
-  addCaptionsToTimeline,
-  onGenerateCaptions,
-  getCaptionstatus,
-  pollingIntervalMs,
   videoResolution,
+  studioConfig,
 }: PropertiesPanelContainerProps) {
   const { editor, present } = useTimelineContext();
   const backgroundColor =
@@ -152,6 +147,15 @@ export function PropertiesPanelContainer({
 
                 return (
                   <>
+                    {/* Before-track tag (host-app feature) — media + text only */}
+                    {studioConfig?.enableBeforeTrackTag &&
+                      (isText || isVideo || isImage || isAudio) && (
+                        <BeforeTrackToggle
+                          selectedElement={selectedElement}
+                          updateElement={updateElement}
+                        />
+                      )}
+
                     {/* Typography (Text only) */}
                     {isText && (
                       <TextPropsPanel
@@ -208,16 +212,6 @@ export function PropertiesPanelContainer({
                       />
                     )}
 
-                    {/* Generate Captions – video only */}
-                    {isVideo && (
-                      <GenerateCaptionsPanel
-                        selectedElement={selectedElement}
-                        addCaptionsToTimeline={addCaptionsToTimeline}
-                        onGenerateCaptions={onGenerateCaptions}
-                        getCaptionstatus={getCaptionstatus}
-                        pollingIntervalMs={pollingIntervalMs}
-                      />
-                    )}
                   </>
                 );
               })()}

@@ -75,18 +75,27 @@ export function Toolbar({
   setSelectedTool,
   customTools = [],
   hiddenTools = [],
+  leftCollapsed,
+  setLeftCollapsed,
 }: {
   selectedTool: string;
   setSelectedTool: (tool: string) => void;
   customTools?: ToolCategory[];
   hiddenTools?: string[];
+  leftCollapsed: boolean;
+  setLeftCollapsed: (collapsed: boolean) => void;
 }) {
 
   const mergedTools = [...defaultToolCategories, ...customTools].filter(
     (tool) => !hiddenTools.includes(tool.id)
   );
   const handleToolSelect = (toolId: string) => {
-    setSelectedTool(toolId)
+    if (toolId === selectedTool && !leftCollapsed) {
+      setLeftCollapsed(true);
+    } else {
+      setLeftCollapsed(false);
+      setSelectedTool(toolId);
+    }
   }
 
   return (

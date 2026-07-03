@@ -1676,10 +1676,12 @@
   flex-shrink: 0;
   height: 100%;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   background-color: rgba(23, 23, 28, 0.98);
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: var(--elevation-panel);
+  transition: width 0.2s ease;
+  overflow: hidden;
 }
 
 .studio-right-panel {
@@ -1690,6 +1692,57 @@
   background-color: rgba(23, 23, 28, 0.98);
   border-left: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: var(--elevation-panel);
+  transition: width 0.2s ease;
+  overflow: hidden;
+}
+
+/* Panel content wrapper — fills the panel beside the toggle strip */
+.studio-panel-content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Collapsed states */
+.studio-left-panel--collapsed {
+  width: 0;
+  border-right: none;
+}
+
+.studio-left-panel--collapsed .studio-panel-content {
+  display: none;
+}
+
+.studio-right-panel--collapsed {
+  width: 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.studio-right-panel--collapsed .studio-panel-content {
+  display: none;
+}
+
+/* Toggle strip button on each panel's inner edge */
+.studio-panel-toggle-strip {
+  width: 16px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+}
+
+.studio-panel-toggle-strip:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 /* Color Input */
